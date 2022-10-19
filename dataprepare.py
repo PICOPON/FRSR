@@ -2,7 +2,6 @@ import glob
 import h5py
 import cv2
 
-
 img_path = 'data/Set5'
 f = h5py.File('test.h5', mode='w')
 scale = 2
@@ -16,7 +15,7 @@ for item_path in glob.glob('{}/*'.format(img_path)):
     img = cv2.imread(item_path, cv2.IMREAD_COLOR)
     hr_size = (img.shape[0] // scale) * scale, (img.shape[1] // scale) * scale
     hr = cv2.resize(img, hr_size, interpolation=cv2.INTER_CUBIC)
-    lr = cv2.resize(img, (img.shape[0] // scale, img.shape[1] // scale), interpolation=cv2.INTER_CUBIC)
+    lr = cv2.resize(img, (img.shape[0] // scale, img.shape[1] // scale), interpolation= cv2.INTER_CUBIC)
     lr = cv2.resize(lr, hr_size, interpolation=cv2.INTER_CUBIC)
 
     for i in range(0, lr.shape[0]-patch_size+1, stride):

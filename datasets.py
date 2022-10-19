@@ -1,6 +1,10 @@
 import h5py
+import torch
 from torch.utils.data import Dataset
 import numpy as np
+import glob
+import torchvision.transforms as transforms
+import cv2
 
 
 class MyData(Dataset):
@@ -17,28 +21,31 @@ class MyData(Dataset):
     def __len__(self):
         return self.lrs.shape[0]
 
-# dataset
-'''
-class MyData(Dataset):
-    def __init__(self, img_path, label_path=None, trans=None, scale=2):
-        super(MyData, self).__init__()
-        self.scale = scale
+
+class CoCo(Dataset):
+    def __init__(self, img_path, label_path=None, trans=None):
+        super(CoCo, self).__init__()
         self.imgs_path = glob.glob('{}/*'.format(img_path))
-        # self.labels_path = os.path.join(label_path, "*.txt")
-        self.trans = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.CenterCrop(100)
-        ])
+        self.labels_path = glob.glob('{}/*'.format(label_path))
+        self.trans = trans
         # 可用于图片的裁剪
 
     def __getitem__(self, item):
         img = cv2.imread(self.imgs_path[item], cv2.IMREAD_COLOR)
-        hr_size = (img.shape[0] // self.scale) * self.scale, (img.shape[1] // self.scale) * self.scale
-        hr = cv2.resize(img, hr_size, interpolation=cv2.INTER_CUBIC)
-        lr = cv2.resize(img, (img.shape[0] // self.scale, img.shape[1] // self.scale), interpolation=cv2.INTER_CUBIC)
-        lr = cv2.resize(lr, hr_size, interpolation=cv2.INTER_CUBIC)
-        return self.trans(lr),  self.trans(hr)
+        h, w, _ = img.shape
+        labels = []
+        with open(self.labels_path[item], 'r') as f:
+            for line in f:
+                x_, y_, w_, h_ = [float(x) for x in line.strip('\n').split(' ')[1::]]
+                x1 = w * x_ - 0.5 * w * w_
+                x2 = w * x_ + 0.5 * w * w_
+                y1 = h * y_ - 0.5 * h * h_
+                y2 = h * y_ + 0.5 * h * h_
+                labels.append([y1, x1, y2, x2])
+
+        return torch.tensor(img/255., dtype=torch.float32).permute(2,0,1), torch.tensor(labels, dtype=torch.float32)
 
     def __len__(self):
         return len(self.imgs_path)
-'''
+
+
