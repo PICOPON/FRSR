@@ -233,6 +233,7 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
         gt_fg_scores = gt_fg_scores_generator(anchors, gt_index_max_ious)  # 生成 [9*H*W, 1] 所有anchor的标签
         rpn_cls_loss += rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores[n, ...])  # cls_loss
 
+
         '''
         # loc loss 计算
         for gt_i in gt_index_max_ious:
@@ -244,6 +245,8 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
             #
             rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, gt_i, :],
                                                  anchors[gt_i, :], bboxes[n, np.argmax(rpn_bbox_loss), :])
+                                                 
+        
         '''
 
     return rpn_cls_loss, rpn_loc_loss
@@ -300,6 +303,9 @@ coco_loader = DataLoader(coco_dataset, 1)
 # 模型定义
 net = FasterRCNN()
 
+for name in net.state_dict():
+    print(name)
+
 # 误差梯度反向传播
 optim = optim.SGD(net.parameters(), 0.01)
 
@@ -325,9 +331,10 @@ for e in range(10):
 
             #
             plt.matshow(img[0, 0, ...])
-            # plt.gca().add_patch(plt.Rectangle((anchors[gt_index_max_ious[0], 1], anchors[gt_index_max_ious[0], 0]), anchors[gt_index_max_ious[0], 3] - anchors[gt_index_max_ious[0], 1],
-            #                                  anchors[gt_index_max_ious[0], 2] - anchors[gt_index_max_ious[0], 0], fill=False,
-            #                                  edgecolor='r', linewidth=3))
+            # plt.gca().add_patch(plt.Rectangle((anchors[gt_index_max_ious[0], 1], anchors[gt_index_max_ious[0], 0]),
+            #                                  anchors[gt_index_max_ious[0], 3] - anchors[gt_index_max_ious[0], 1],
+            #                                  anchors[gt_index_max_ious[0], 2] - anchors[gt_index_max_ious[0], 0],
+            #                                  fill=False, edgecolor='r', linewidth=3))
 
             plt.gca().add_patch(plt.Rectangle((bboxes[0, 0, 1], bboxes[0, 0, 0]), bboxes[0, 0, 3] - bboxes[0, 0, 1],
                                               bboxes[0, 0, 2] - bboxes[0, 0, 0], fill=False,
