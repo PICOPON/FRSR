@@ -252,11 +252,6 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
 def iou_compute(anchor, bbox):
     # (1, 4) anchor, bbox : yxyx
     box1, box2 = anchor, bbox
-    '''
-    两个框（二维）的 iou 计算
-    注意：边框以左上为原点
-    box:[top, left, bottom, right]
-    '''
     in_h = min(box1[2], box2[2]) - max(box1[0], box2[0])
     in_w = min(box1[3], box2[3]) - max(box1[1], box2[1])
     inter = 0 if in_h < 0 or in_w < 0 else in_h * in_w
