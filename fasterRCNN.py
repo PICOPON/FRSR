@@ -304,10 +304,7 @@ coco_loader = DataLoader(coco_dataset, 1)
 
 # 模型定义
 net = FasterRCNN()
-# 设置网络的参数化
 
-print(net.modules())
-'''
 # 误差梯度反向传播
 optim = optim.SGD(net.parameters(), 0.01)
 
@@ -345,4 +342,3 @@ for e in range(10):
                                               rois[0, 0, 2] - rois[0, 0, 0], fill=False,
                                               edgecolor='r', linewidth=3))
             plt.show()
-'''
