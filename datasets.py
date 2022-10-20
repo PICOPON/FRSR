@@ -1,10 +1,9 @@
+import glob
+import cv2
 import h5py
+import numpy as np
 import torch
 from torch.utils.data import Dataset
-import numpy as np
-import glob
-import torchvision.transforms as transforms
-import cv2
 
 
 class MyData(Dataset):

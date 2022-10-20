@@ -7,13 +7,13 @@ from SRCNN.SRCNN import SRCNN
 from datasets import CoCo
 
 
-# 模型结构
+# FRSR主模型结构构建
 class FRSR(nn.Module):
     def __init__(self):
         super(FRSR, self).__init__()
         self.rpn_front = FRPN()
         self.sr_cnn = SRCNN(3)
-        # self.dt_end = YOLO() # YOLO
+        # self.dt_end = YOLO() # YOLO 等单步探测模型
 
     def forward(self, x):
         _, _, _, rois = self.rpn_front(x)
@@ -37,6 +37,7 @@ coco_loader = DataLoader(coco_dataset, 1)
 
 # 模型定义
 net = FRSR()
+print(net)
 
 # 冻结部分模型参数
 net.rpn_front.requires_grad = False
