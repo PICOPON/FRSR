@@ -11,7 +11,7 @@ import torch.optim as optim
 class FRPN(nn.Module):
     def __init__(self):
         super(FRPN, self).__init__()
-        vgg16 = torchvision.models.vgg16(pretrained=True)
+        vgg16 = torchvision.models.vgg16(pretrained=True)   # 加载预训练权重
         for name, module in vgg16.named_modules():
             if name == 'features':
                 self.backbone = module

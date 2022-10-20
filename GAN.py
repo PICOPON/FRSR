@@ -77,7 +77,7 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         print('GPU', torch.cuda.get_device_name())
     data = DataLoader(MyData(img_path="data/bird/images"), batch_size=50)
-    G = Generator(z=torch.rand((50, 100)).cuda()).cuda()
+    G = Generator(z=torch.rand((50, 100)).cuda()).cuda()  # 随机噪声向量
     D = Discriminator().cuda()
 
     # 权重初始化
