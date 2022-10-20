@@ -304,10 +304,6 @@ for e in range(10):
 
             #
             plt.matshow(img[0, 0, ...])
-            # plt.gca().add_patch(plt.Rectangle((anchors[gt_index_max_ious[0], 1], anchors[gt_index_max_ious[0], 0]),
-            #                                  anchors[gt_index_max_ious[0], 3] - anchors[gt_index_max_ious[0], 1],
-            #                                  anchors[gt_index_max_ious[0], 2] - anchors[gt_index_max_ious[0], 0],
-            #                                  fill=False, edgecolor='r', linewidth=3))
 
             plt.gca().add_patch(plt.Rectangle((bboxes[0, 0, 1], bboxes[0, 0, 0]), bboxes[0, 0, 3] - bboxes[0, 0, 1],
                                               bboxes[0, 0, 2] - bboxes[0, 0, 0], fill=False,
