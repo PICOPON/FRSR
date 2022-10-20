@@ -2,6 +2,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -10,39 +11,11 @@ import torch.optim as optim
 class FasterRCNN(nn.Module):
     def __init__(self):
         super(FasterRCNN, self).__init__()
-        self.backbone = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
-            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU()
-        )
-        self.rpn = RPN(inChannels=512, im_info=16)
+        vgg16 = torchvision.models.vgg16(pretrained=True)
+        for name, module in vgg16.named_modules():
+            if name == 'features':
+                self.backbone = module
+        self.rpn = RPN(inChannels=512, im_info=32)
 
     def forward(self, x):
         features = self.backbone(x)
@@ -53,9 +26,9 @@ class FasterRCNN(nn.Module):
 class RPN(nn.Module):
     def __init__(self, inChannels, im_info):
         super(RPN, self).__init__()
-        self.conv1 = nn.Conv2d(inChannels, inChannels, kernel_size=3, stride=1, padding=1)  # conv
-        self.score = nn.Conv2d(inChannels, 18, kernel_size=1, stride=1)  # 1*1 conv 分类
-        self.loc = nn.Conv2d(inChannels, 36, kernel_size=1, stride=1)  # 1*1 conv 回归
+        self.conv1 = nn.Conv2d(inChannels, inChannels, kernel_size=3, stride=1, padding=1)   # 3*3 conv 提取特征
+        self.score = nn.Conv2d(inChannels, 18, kernel_size=1, stride=1)                      # 1*1 conv 分类
+        self.loc = nn.Conv2d(inChannels, 36, kernel_size=1, stride=1)                        # 1*1 conv 回归
         self.feat_stride = im_info  # 用于记录下采样的放缩比例，生成anchor和rois
 
     def forward(self, x):
@@ -74,7 +47,7 @@ class RPN(nn.Module):
         anchors_base = self.generate_anchor_base(base_size=16, ratios=[0.5, 1, 2], anchor_scales=[1, 4, 8])
         anchors = self._enumerate_shifted_anchor(anchors_base, feat_stride=self.feat_stride,
                                                  height=hh, width=ww)  # (9*H*W, 4)  原图的anchor坐标
-        # anchors 范围限制
+        # anchors范围限制 clamp操作
         H, W = hh * self.feat_stride, ww * self.feat_stride
         anchors[anchors < 0] = 0
         anchors[:, 0][anchors[:, 0] > H] = H
@@ -83,18 +56,18 @@ class RPN(nn.Module):
         anchors[:, 3][anchors[:, 3] > W] = W
 
         # rois生成
-        rois = np.zeros((n, 1, 4))  # (N, 9*H*W, 4) 取1个anchor box
+        b_rois = []  # (N, 9*H*W, 4) 取1个anchor box
         for i in range(n):
-            roi = self.proposal_layer(
+            rois = self.proposal_layer(
                 anchors,
                 rpn_locs[i].cpu().data.numpy(),
                 rpn_fg_scores[i].cpu().data.numpy(),
                 (hh, ww),
                 self.feat_stride
             )
-            rois[i, ...] = roi
+            b_rois.append(rois)
 
-        return rpn_fg_scores, rpn_locs, anchors, rois
+        return rpn_fg_scores, rpn_locs, anchors, b_rois
 
     # 函数功能：
     # 以 base_size=(16*16)为基础anchor，按照ratios和scale 生成基本的9个anchor
@@ -179,26 +152,34 @@ class RPN(nn.Module):
         '''
         :param anchors:   锚框 (9*H*W, 4)
         :param rpn_locs:  锚框位置偏移
-        :param rpn_fg_scores:  锚框类置信度
+        :param rpn_fg_scores:  锚框类置信度 (9*H*W, )
         :return:  roi 生成1个候选框 yxyx
         '''
-        roi = np.zeros_like(anchors)
+        t_anchors = np.zeros_like(anchors)
         px, py, pw, ph = anchors[:, 1], anchors[:, 0], anchors[:, 3] - anchors[:, 1], anchors[:, 2] - anchors[:, 0]
         dx, dy, dw, dh = rpn_locs[:, 0], rpn_locs[:, 1], rpn_locs[:, 2], rpn_locs[:, 3]
         gx, gy, gw, gh = px + dx * pw, py + dy * ph, pw * np.exp(dw), ph * np.exp(dh)
-        roi[:, 0], roi[:, 1], roi[:, 2], roi[:, 3] = gy, gx, gy + gh, gx + gw
+        t_anchors[:, 0], t_anchors[:, 1], t_anchors[:, 2], t_anchors[:, 3] = gy, gx, gy + gh, gx + gw
         # 分数筛选
         # clamp
         H, W = fmap_size[0] * scale, fmap_size[1] * scale
-        roi[roi < 0] = 0
-        roi[:, 0][roi[:, 0] > H] = H
-        roi[:, 1][roi[:, 1] > W] = W
-        roi[:, 2][roi[:, 2] > H] = H
-        roi[:, 3][roi[:, 3] > W] = W
+        t_anchors[t_anchors < 0] = 0
+        t_anchors[:, 0][t_anchors[:, 0] > H] = H
+        t_anchors[:, 1][t_anchors[:, 1] > W] = W
+        t_anchors[:, 2][t_anchors[:, 2] > H] = H
+        t_anchors[:, 3][t_anchors[:, 3] > W] = W
 
-        max_index_anchor = np.argmax(rpn_fg_scores)
+        dict_t_fg_score = dict()
+        for id, t_fg_score in enumerate(rpn_fg_scores):
+            dict_t_fg_score[id] = t_fg_score
+
+        max_t_fg_scores = sorted(dict_t_fg_score.items(), key=lambda x: x[1], reverse=True)
+        max_index_anchors = [key for key, value in max_t_fg_scores][:10]  # 取前128个iou对应的anchor序号
+        rois = []
+        for m_i in max_index_anchors:
+            rois.append(t_anchors[m_i, :])
         # nms
-        return roi[max_index_anchor, :]
+        return rois
 
 
 # 损失函数定义
@@ -210,29 +191,22 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
     rpn_loc_loss = 0
     for n in range(N):
         # cls loss 计算
-        gt_index_max_ious = []  # (m, 1)  iou最大对应的anchor序号
+        gt_index_max128_ious = []  # (m, 128)  iou最大对应的anchor序号
         for j in range(m):  # m个bbox
-            ious = []
+            ious = dict()
             for i in range(len(anchors)):
-                ious.append(iou_compute(anchors[i, ...], bboxes[n, j, :]))  # 求出每个bbox和所有anchors的iou (9*H*W, 1)
-            gt_index_max_iou = np.argmax(ious)  # 最大iou对应的anchor序号
-            ious.remove(np.max(ious))
-            gt_index_sec_iou = np.argmax(ious)
-            ious.remove(np.max(ious))
-            gt_index_trd_iou = np.argmax(ious)
-            gt_index_max_ious.extend([gt_index_max_iou, gt_index_sec_iou, gt_index_trd_iou])  # 添加128个anchor
+                ious[i] = iou_compute(anchors[i, ...], bboxes[n, j, :])  # 求出每个bbox和所有anchors的iou (9*H*W, 1)
+            n_ious = sorted(ious.items(), key=lambda x: x[1], reverse=True)
+            n_ious_max = [key for key, value in n_ious][:128]     # 取前128个iou对应的anchor序号
+            gt_index_max128_ious.append(n_ious_max)
 
             # loc loss 计算
-            rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, gt_index_max_iou, :],
-                                                 anchors[gt_index_max_iou, :], bboxes[n, j, :])
-            rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, gt_index_sec_iou, :],
-                                                 anchors[gt_index_sec_iou, :], bboxes[n, j, :])
-            rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, gt_index_trd_iou, :],
-                                                 anchors[gt_index_trd_iou, :], bboxes[n, j, :])
+            for n_i in n_ious_max:
+                rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, n_i, :],
+                                                     anchors[n_i, :], bboxes[n, j, :])
 
-        gt_fg_scores = gt_fg_scores_generator(anchors, gt_index_max_ious)  # 生成 [9*H*W, 1] 所有anchor的标签
+        gt_fg_scores = gt_fg_scores_generator(anchors, gt_index_max128_ious)  # 生成 [9*H*W, 1] 所有anchor的标签
         rpn_cls_loss += rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores[n, ...])  # cls_loss
-
 
         '''
         # loc loss 计算
@@ -245,8 +219,6 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
             #
             rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, gt_i, :],
                                                  anchors[gt_i, :], bboxes[n, np.argmax(rpn_bbox_loss), :])
-                                                 
-        
         '''
 
     return rpn_cls_loss, rpn_loc_loss
@@ -266,15 +238,16 @@ def iou_compute(anchor, bbox):
 
 def gt_fg_scores_generator(anchors, gt_index_max_ious):
     # [9*H*W, 4], (m, 1)
-    gt_rpn_label = torch.zeros([anchors.shape[0], 1])  #
-    for gt_i in gt_index_max_ious:
-        gt_rpn_label[gt_i, 0] = 1  # 前景为1 背景为0
+    gt_rpn_label = torch.zeros(anchors.shape[0])  #
+    for gt_index128 in gt_index_max_ious:
+        for gt_i in gt_index128:
+            gt_rpn_label[gt_i] = 1  # 前景为1 背景为0
     return gt_rpn_label
 
 
 def rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores, loss_fn=nn.MSELoss()):
     # 目标 gt_fg_scores =[0,0,...,1, ..., 0] <= rpn_fg_scores
-    return loss_fn(gt_fg_scores[:, 0], rpn_fg_scores)
+    return loss_fn(gt_fg_scores, rpn_fg_scores)
 
 
 def rpn_loc_loss_compute(rpn_locs, anchors, bbox):
@@ -303,13 +276,14 @@ coco_loader = DataLoader(coco_dataset, 1)
 # 模型定义
 net = FasterRCNN()
 
-for name in net.state_dict():
-    print(name)
+net.train()
+
+# 冻结部分模型参数
+net.backbone.requires_grad = False
 
 # 误差梯度反向传播
-optim = optim.SGD(net.parameters(), 0.01)
+optim = optim.SGD(net.rpn.parameters(), 0.01)
 
-net.train()
 for e in range(10):
     for img, bboxes in coco_loader:
         if bboxes.shape[1]:
@@ -339,8 +313,8 @@ for e in range(10):
             plt.gca().add_patch(plt.Rectangle((bboxes[0, 0, 1], bboxes[0, 0, 0]), bboxes[0, 0, 3] - bboxes[0, 0, 1],
                                               bboxes[0, 0, 2] - bboxes[0, 0, 0], fill=False,
                                               edgecolor='w', linewidth=3))
-
-            plt.gca().add_patch(plt.Rectangle((rois[0, 0, 1], rois[0, 0, 0]), rois[0, 0, 3] - rois[0, 0, 1],
-                                              rois[0, 0, 2] - rois[0, 0, 0], fill=False,
-                                              edgecolor='r', linewidth=3))
+            for roi in rois[0]:
+                plt.gca().add_patch(plt.Rectangle((roi[1], roi[0]), roi[3] - roi[1],
+                                                  roi[2] - roi[0], fill=False,
+                                                  edgecolor='r', linewidth=3))
             plt.show()
