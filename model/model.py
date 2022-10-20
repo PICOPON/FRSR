@@ -12,7 +12,7 @@ class FRSR(nn.Module):
         super(FRSR, self).__init__()
         self.rpn_front = FRPN()
         self.sr_cnn = SRCNN(3)
-        self.dt_end = None
+        self.dt_end = nn.Conv2d(3,3,3) # YOLO
 
     def forward(self, x):
         _, _, _, rois = self.rpn_front(x)
@@ -26,8 +26,8 @@ class FRSR(nn.Module):
         return out
 
 
-coco_dataset = CoCo('../datasets/Mines.v2i.yolov5pytorch/train/images/',
-                    '../datasets/Mines.v2i.yolov5pytorch/train/labels/')
+coco_dataset = CoCo('../../datasets/Mines.v2i.yolov5pytorch/train/images/',
+                    '../../datasets/Mines.v2i.yolov5pytorch/train/labels/')
 
 coco_loader = DataLoader(coco_dataset, 1)
 
@@ -37,16 +37,14 @@ coco_loader = DataLoader(coco_dataset, 1)
 # 模型定义
 net = FRSR()
 
-x = torch.rand(1, 3, 416, 416)
-y = net(x)
-print(y.shape)
 
-'''
 # 冻结部分模型参数
-net.backbone.requires_grad = False
+net.rpn_front.requires_grad = False
+net.sr_cnn.requires_grad = False
+
 
 # 误差梯度反向传播
-optim = optim.SGD(net.rpn.parameters(), 0.001)
+# ptim = optim.SGD(net.dt_end.parameters(), lr=0.001, momentum=0.9)
 
 net.train()
 for e in range(10):
@@ -54,5 +52,5 @@ for e in range(10):
         if bboxes.shape[1]:
             net.zero_grad()
             # 损失计算
-            rpn_fg_scores, rpn_locs, anchors, rois = net(img)
-'''
+            y = net(img)
+            print(y.shape)
