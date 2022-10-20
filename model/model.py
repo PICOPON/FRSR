@@ -37,11 +37,9 @@ coco_loader = DataLoader(coco_dataset, 1)
 # 模型定义
 net = FRSR()
 
-
 # 冻结部分模型参数
 net.rpn_front.requires_grad = False
 net.sr_cnn.requires_grad = False
-
 
 # 误差梯度反向传播
 # ptim = optim.SGD(net.dt_end.parameters(), lr=0.001, momentum=0.9)

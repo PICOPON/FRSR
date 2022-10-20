@@ -293,15 +293,15 @@ for e in range(10):
             # 损失计算
             rpn_cls_loss, rpn_loc_loss = loss_compute(rpn_fg_scores, rpn_locs, torch.tensor(anchors), bboxes)
             #
-            print(f'rpn_loc_loss: {rpn_loc_loss}, rpn_cls_loss: {rpn_cls_loss} ')
             loss_fn = nn.MSELoss()
             rpn_loss = loss_fn(rpn_cls_loss, rpn_loc_loss)
 
             rpn_loss.backward()
             optim.step()
-            print(f'rpn_loc_loss: {rpn_loc_loss}, rpn_cls_loss: {rpn_cls_loss} ')
 
+            print(f'rpn_loc_loss: {rpn_loc_loss}, rpn_cls_loss: {rpn_cls_loss} ')
             #
+            # 可视化rpn网络推荐框的迭代过程
             plt.matshow(img[0, 0, ...])
 
             plt.gca().add_patch(plt.Rectangle((bboxes[0, 0, 1], bboxes[0, 0, 0]), bboxes[0, 0, 3] - bboxes[0, 0, 1],
