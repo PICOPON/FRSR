@@ -8,9 +8,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
-class FasterRCNN(nn.Module):
+class FRPN(nn.Module):
     def __init__(self):
-        super(FasterRCNN, self).__init__()
+        super(FRPN, self).__init__()
         vgg16 = torchvision.models.vgg16(pretrained=True)
         for name, module in vgg16.named_modules():
             if name == 'features':
@@ -274,7 +274,7 @@ coco_loader = DataLoader(coco_dataset, 1)
 # bboxes = torch.tensor([[[100, 200, 30, 30], [100, 100, 100, 100], [200, 200, 100, 100]]])
 
 # 模型定义
-net = FasterRCNN()
+net = FRPN()
 # 冻结部分模型参数
 net.backbone.requires_grad = False
 
