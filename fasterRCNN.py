@@ -44,7 +44,7 @@ class RPN(nn.Module):
 
         # rpn_scores = rpn_scores.view(n, -1, 2)  # (N,H,W,2*9) ->(N,9*H*W,2)
         # anchors生成
-        anchors_base = self.generate_anchor_base(base_size=16, ratios=[0.5, 1, 2], anchor_scales=[1, 4, 8])
+        anchors_base = self.generate_anchor_base(base_size=16, ratios=[0.5, 1, 2], anchor_scales=[1, 2, 4])
         anchors = self._enumerate_shifted_anchor(anchors_base, feat_stride=self.feat_stride,
                                                  height=hh, width=ww)  # (9*H*W, 4)  原图的anchor坐标
         # anchors范围限制 clamp操作
@@ -245,7 +245,7 @@ def gt_fg_scores_generator(anchors, gt_index_max_ious):
     return gt_rpn_label
 
 
-def rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores, loss_fn=nn.MSELoss()):
+def rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores, loss_fn=nn.L1Loss()):
     # 目标 gt_fg_scores =[0,0,...,1, ..., 0] <= rpn_fg_scores
     return loss_fn(gt_fg_scores, rpn_fg_scores)
 
@@ -275,15 +275,13 @@ coco_loader = DataLoader(coco_dataset, 1)
 
 # 模型定义
 net = FasterRCNN()
-
-net.train()
-
 # 冻结部分模型参数
 net.backbone.requires_grad = False
 
 # 误差梯度反向传播
-optim = optim.SGD(net.rpn.parameters(), 0.01)
+optim = optim.SGD(net.rpn.parameters(), 0.001)
 
+net.train()
 for e in range(10):
     for img, bboxes in coco_loader:
         if bboxes.shape[1]:
@@ -291,6 +289,7 @@ for e in range(10):
             # 损失计算
             rpn_fg_scores, rpn_locs, anchors, rois = net(img)
 
+            print(f'roi_nums: {len(rois[0])}')
             # 损失计算
             rpn_cls_loss, rpn_loc_loss = loss_compute(rpn_fg_scores, rpn_locs, torch.tensor(anchors), bboxes)
             #
