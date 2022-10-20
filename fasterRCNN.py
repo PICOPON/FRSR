@@ -299,7 +299,6 @@ for e in range(10):
 
             rpn_loss.backward()
             optim.step()
-
             print(f'rpn_loc_loss: {rpn_loc_loss}, rpn_cls_loss: {rpn_cls_loss} ')
 
             #
