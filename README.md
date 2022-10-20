@@ -1,3 +1,5 @@
 # SmallDT
 
-![net](https://user-images.githubusercontent.com/49949166/196869110-671b5906-e661-428b-a27e-5cc35bbb6f37.jpg)
+
+![image](https://user-images.githubusercontent.com/49949166/196869381-bc7c0add-4e37-444b-adc3-cc196c1c4f58.png)
+
