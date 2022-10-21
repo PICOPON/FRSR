@@ -13,7 +13,7 @@ class FRSR(nn.Module):
         super(FRSR, self).__init__()
         self.rpn_front = FRPN()
         self.sr_cnn = SRCNN(3)
-        # self.dt_end = YOLO() # YOLO 等单步探测模型
+        # self.dt_end = classification() # YOLO 等单步探测模型
 
     def forward(self, x):
         _, _, _, rois = self.rpn_front(x)

@@ -42,7 +42,7 @@ class CoCo(Dataset):
                 y2 = h * y_ + 0.5 * h * h_
                 labels.append([y1, x1, y2, x2])
 
-        return torch.tensor(img/255., dtype=torch.float32).permute(2,0,1), torch.tensor(labels, dtype=torch.float32)
+        return torch.tensor(img/255., dtype=torch.float32).permute(2, 0, 1), torch.tensor(labels, dtype=torch.float32)
 
     def __len__(self):
         return len(self.imgs_path)
