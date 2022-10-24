@@ -2,7 +2,10 @@
 
 FRSR net for small target detection enhancement
 
-![image](https://user-images.githubusercontent.com/49949166/197086516-4aa61766-f25b-4d5a-b7f3-0ad729c41d22.png)
+![FRSR](https://user-images.githubusercontent.com/49949166/197488938-8cc3d17c-5ad1-4917-81ad-811b40d80e62.jpg)
+
+1.RPN 训练
+2.Resnet 训练
 
 
 
