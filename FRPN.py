@@ -19,6 +19,7 @@ class FRPN(nn.Module):
 
     def forward(self, x):
         features = self.backbone(x)
+        print(features.shape)
         rpn_score, rpn_locs, anchors, rois = self.rpn(features)
         return rpn_score, rpn_locs, anchors, rois
 
@@ -205,21 +206,8 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
                 rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, n_i, :],
                                                      anchors[n_i, :], bboxes[n, j, :])
 
-        gt_fg_scores = gt_fg_scores_generator(anchors, gt_index_max128_ious)  # 生成 [9*H*W, 1] 所有anchor的标签
-        rpn_cls_loss += rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores[n, ...])  # cls_loss
-
-        '''
-        # loc loss 计算
-        for gt_i in gt_index_max_ious:
-            # 对每个gt对应的前景anchor锚框求loc损失
-            rpn_bbox_loss = []
-            for l in range(m):
-                rpn_bbox_loss.append(rpn_loc_loss_compute(rpn_locs[n, gt_i, :],
-                                                          anchors[gt_i, :], bboxes[n, l, :]).detach())
-            #
-            rpn_loc_loss += rpn_loc_loss_compute(rpn_locs[n, gt_i, :],
-                                                 anchors[gt_i, :], bboxes[n, np.argmax(rpn_bbox_loss), :])
-        '''
+        gt_fg_scores = gt_fg_scores_generator(anchors, gt_index_max128_ious)        # 生成 [9*H*W, 1] 所有anchor的标签
+        rpn_cls_loss += rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores[n, ...])   # cls_loss
 
     return rpn_cls_loss, rpn_loc_loss
 
