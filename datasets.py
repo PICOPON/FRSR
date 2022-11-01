@@ -6,9 +6,10 @@ import torch
 from torch.utils.data import Dataset
 
 
-class MyData(Dataset):
+# srcnn dataset
+class SRData(Dataset):
     def __init__(self, fpath='data.h5', trans=None):
-        super(MyData, self).__init__()
+        super(SRData, self).__init__()
         self.f = h5py.File(fpath, mode='r')
         self.hrs = self.f["hr"]
         self.lrs = self.f["lr"]
@@ -21,13 +22,13 @@ class MyData(Dataset):
         return self.lrs.shape[0]
 
 
-class CoCo(Dataset):
+# rpn/frsr dataset yxyx
+class BBoxData(Dataset):
     def __init__(self, img_path, label_path=None, trans=None):
-        super(CoCo, self).__init__()
+        super(BBoxData, self).__init__()
         self.imgs_path = glob.glob('{}/*'.format(img_path))
         self.labels_path = glob.glob('{}/*'.format(label_path))
         self.trans = trans
-        # 可用于图片的裁剪
 
     def __getitem__(self, item):
         img = cv2.imread(self.imgs_path[item], cv2.IMREAD_COLOR)

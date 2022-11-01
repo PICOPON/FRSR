@@ -1,19 +1,20 @@
 import torch.nn
 import torch.optim as optim
-from datasets import MyData
+from datasets import SRData
 from torch.utils.data import DataLoader
-from SRCNN.SRCNN import SRCNN
+from srcnn import SRCNN
 
 # 计算硬件
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f'device: {device}')
+
 # 超参数
 batch_size = 16
 lr = 0.01
-epochs = 50
+epochs = 1
 # 数据
-train = MyData(fpath='train.h5')
-test = MyData(fpath='test.h5')
+train = SRData(fpath='train.h5')
+test = SRData(fpath='test.h5')
 trainSet = DataLoader(train, batch_size=batch_size)
 testSet = DataLoader(test, batch_size=batch_size)
 
@@ -54,4 +55,5 @@ for e in range(epochs):
         print(f'avg test loss: { avg_loss / len(testSet) }')
     # torch.onnx.export(net, torch.randn(1, 3, 256, 256).to(device), 'srcnn.onnx', input_names=['input'],
     #                  output_names=['output'])
-    torch.save(net, 'srcnn.pth')
+
+torch.save(net.state_dict(), 'srcnn_saved.pth')

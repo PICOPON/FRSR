@@ -2,14 +2,14 @@ import glob
 import h5py
 import cv2
 
-img_path = 'data/Set5'
-f = h5py.File('test.h5', mode='w')
+img_path = r'D:\LenovoSoftstore\Install\Pycharm\PyCharm 2021.3.2\projects\Network\data/Set14'
+f = h5py.File('train.h5', mode='w')
 scale = 2
 
 lr_patches = []
 hr_patches = []
 patch_size = 200
-stride = 10
+stride = 100
 
 for item_path in glob.glob('{}/*'.format(img_path)):
     img = cv2.imread(item_path, cv2.IMREAD_COLOR)

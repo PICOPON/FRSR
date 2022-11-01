@@ -14,4 +14,3 @@ class SRCNN(nn.Module):
         x = self.relu(self.CONV2(x))
         return self.CONV3(x)
 
-
