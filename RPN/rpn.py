@@ -1,8 +1,10 @@
 import torchvision
+import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 
+import matplotlib.pyplot as plt
 
 class FRPN(nn.Module):
     def __init__(self):
@@ -16,7 +18,7 @@ class FRPN(nn.Module):
     def forward(self, x):
         features = self.backbone(x)
         rpn_score, rpn_locs, anchors, rois = self.rpn(features)
-        return rpn_score, rpn_locs, anchors, rois
+        return rpn_score, rpn_locs, anchors, rois # rois [N, 20, 4]
 
 
 class RPN(nn.Module):
@@ -40,7 +42,7 @@ class RPN(nn.Module):
 
         # rpn_scores = rpn_scores.view(n, -1, 2)  # (N,H,W,2*9) ->(N,9*H*W,2)
         # anchors生成  未范围限制的anchors
-        anchors_base = self.generate_anchor_base(base_size=16, ratios=[0.5, 1, 2], anchor_scales=[1, 2, 4])
+        anchors_base = self.generate_anchor_base(base_size=16, ratios=[0.5, 1, 2], anchor_scales=[2, 4, 8])
         anchors = self.shifted_anchor_base(anchors_base, feat_stride=self.feat_stride,
                                                  height=hh, width=ww)  # (9*H*W, 4)  原图的anchor坐标
 
@@ -156,9 +158,23 @@ class RPN(nn.Module):
             dict_t_fg_score[id] = t_fg_score
 
         max_t_fg_scores = sorted(dict_t_fg_score.items(), key=lambda x: x[1], reverse=True)
-        max_index_anchors = [key for key, value in max_t_fg_scores][:10]  # 取前10个iou对应的anchor序号
+        max_index_anchors = [key for key, value in max_t_fg_scores][:20]  # 取前20个iou对应的anchor序号
         rois = []
         for m_i in max_index_anchors:
             rois.append(t_anchors[m_i, :])
         # nms
         return rois
+
+'''
+x = torch.randn(1, 3, 416, 416)
+net = FRPN()
+rpn_score, rpn_locs, anchors, rois = net(x)
+
+plt.matshow(x[0,0,...])
+for roi in rois[0]:
+    plt.gca().add_patch(plt.Rectangle((roi[1], roi[0]), roi[3] - roi[1],
+                                                  roi[2] - roi[0], fill=False,
+                                                  edgecolor='w', linewidth=3))
+plt.show()
+print(rois[0])
+'''
