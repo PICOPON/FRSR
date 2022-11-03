@@ -56,7 +56,7 @@ for e in range(10):
 
             _, _, _, rois = frpn_net(img)
             obj_rois = []
-            for n in range(len(rois)):   #第n批次rois
+            for n in range(len(rois)):   # 第n批次rois
                 for roi in rois[n]:
                     roi_x0, roi_y0, roi_x1, roi_y1 = round(roi[1]), round(roi[0]), round(roi[3]), round(roi[2])
                     roi_patch = img[n, :, roi_x0:roi_x1, roi_y0:roi_y1]
