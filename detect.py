@@ -5,7 +5,7 @@ import torch
 
 
 def f(roi, cls_pred, loc_pred):
-    pass
+    return [0,0,0,0]
 
 
 if __name__ == '__main__':

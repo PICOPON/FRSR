@@ -10,7 +10,7 @@ from datasets import BBoxData
 from RPN.rpn_train import iou_compute
 
 
-# loss 计算
+# MTHead网络 loss 计算
 def MTHead_Loss_Compute(bboxes, roi, cls_pred, loc_pred, iou_threshold, loss_fn = torch.nn.MSELoss()):
     # bboxes[m, 5] , roi[4], cls_pred [1,2], loc_pred [1,4]
     m, _ = bboxes.shape
