@@ -22,7 +22,7 @@ class SRData(Dataset):
         return self.lrs.shape[0]
 
 
-# rpn/frsr dataset yxyx
+# rpn/frsr dataset cls,yxyx
 class BBoxData(Dataset):
     def __init__(self, img_path, label_path=None, trans=None):
         super(BBoxData, self).__init__()
@@ -36,12 +36,12 @@ class BBoxData(Dataset):
         labels = []
         with open(self.labels_path[item], 'r') as f:
             for line in f:
-                x_, y_, w_, h_ = [float(x) for x in line.strip('\n').split(' ')[1::]]
+                cls, x_, y_, w_, h_ = [float(x) for x in line.strip('\n').split(' ')[::]]
                 x1 = w * x_ - 0.5 * w * w_
                 x2 = w * x_ + 0.5 * w * w_
                 y1 = h * y_ - 0.5 * h * h_
                 y2 = h * y_ + 0.5 * h * h_
-                labels.append([y1, x1, y2, x2])
+                labels.append([cls, y1, x1, y2, x2])
 
         return torch.tensor(img/255., dtype=torch.float32).permute(2, 0, 1), torch.tensor(labels, dtype=torch.float32)
 
