@@ -64,7 +64,6 @@ for e in range(10):
     for img, bboxes in BboxData_loader:
         if bboxes.shape[1]:     # 如果有目标
             MTHead_net.zero_grad()
-
             _, _, _, rois = frpn_net(img)
             obj_rois = []
             for n in range(len(rois)):   # 第n批次rois
