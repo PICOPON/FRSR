@@ -1,4 +1,4 @@
-from MTHead.MTHead import MTHead
+from MTHead.head import MTHead
 from RPN.rpn import FRPN
 from SRCNN.srcnn import SRCNN
 import torch

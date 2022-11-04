@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 import matplotlib.pyplot as plt
 
+
 class FRPN(nn.Module):
     def __init__(self):
         super(FRPN, self).__init__()
@@ -27,24 +28,24 @@ class RPN(nn.Module):
         self.conv1 = nn.Conv2d(inChannels, inChannels, kernel_size=3, stride=1, padding=1)   # 3*3 conv 提取特征
         self.score = nn.Conv2d(inChannels, 18, kernel_size=1, stride=1)                      # 1*1 conv 分类
         self.loc = nn.Conv2d(inChannels, 36, kernel_size=1, stride=1)                        # 1*1 conv 回归
-        self.feat_stride = im_info  # 采样的放缩比例，用于在输入图中生成anchor和rois
+        self.feat_stride = im_info                                          # 采样的放缩比例，用于在输入图中生成anchor和rois
 
     def forward(self, x):
-        h = F.relu(self.conv1(x))  # 输入H*W*512特征图 (N,512,H,W)
-        n, _, hh, ww = h.shape  # 特征图的batch_size N, 高, 宽
+        h = F.relu(self.conv1(x))   # 输入H*W*512特征图 (N,512,H,W)
+        n, _, hh, ww = h.shape      # 特征图的batch_size N, 高, 宽
         rpn_locs = self.loc(h).permute(0, 2, 3, 1).contiguous().view(n, -1, 4)  # (N, 9*H*W, 4) 每个预测框的位置
         rpn_scores = self.score(h)  # 分类 (N,512,H,W) -> (N,2*9,H,W)
         rpn_scores = rpn_scores.permute(0, 2, 3, 1).contiguous()  # (N,2*9,H,W)-> (N,H,W,2*9)
         rpn_softmax_scores = F.softmax(rpn_scores.view(n, hh, ww, 9, 2), dim=4)
         # (N,H,W,2*9)->(N,H,W,9,2) 并在dim=4基础上去计算softmax
         rpn_fg_scores = rpn_softmax_scores[:, :, :, :, 1].contiguous()  # (N,H,W,9) 1对应是前景的置信度
-        rpn_fg_scores = rpn_fg_scores.view(n, -1)  # (N,9*H*W) 每个预测框的置信度
+        rpn_fg_scores = rpn_fg_scores.view(n, -1)                       # (N,9*H*W) 每个预测框的置信度
 
         # rpn_scores = rpn_scores.view(n, -1, 2)  # (N,H,W,2*9) ->(N,9*H*W,2)
         # anchors生成  未范围限制的anchors
         anchors_base = self.generate_anchor_base(base_size=16, ratios=[0.5, 1, 2], anchor_scales=[2, 4, 8])
         anchors = self.shifted_anchor_base(anchors_base, feat_stride=self.feat_stride,
-                                                 height=hh, width=ww)  # (9*H*W, 4)  原图的anchor坐标
+                                            height=hh, width=ww)  # (9*H*W, 4)  原图的anchor坐标
 
         # rois生成
         b_rois = []  # (N, 9*H*W, 4) 取1个anchor box
@@ -164,17 +165,3 @@ class RPN(nn.Module):
             rois.append(t_anchors[m_i, :])
         # nms
         return rois
-
-'''
-x = torch.randn(1, 3, 416, 416)
-net = FRPN()
-rpn_score, rpn_locs, anchors, rois = net(x)
-
-plt.matshow(x[0,0,...])
-for roi in rois[0]:
-    plt.gca().add_patch(plt.Rectangle((roi[1], roi[0]), roi[3] - roi[1],
-                                                  roi[2] - roi[0], fill=False,
-                                                  edgecolor='w', linewidth=3))
-plt.show()
-print(rois[0])
-'''
