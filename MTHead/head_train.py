@@ -92,8 +92,6 @@ for e in range(10):
 
                 print(f"cls_n_loss: {cls_n_loss}, loc_n_loss: {loc_n_loss}")
 
-
-
                 loss = cls_n_loss**2 + loc_n_loss**2
 
                 loss.backward()
