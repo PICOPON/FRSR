@@ -26,8 +26,9 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
 
             # loc loss 计算
             for n_i in n_ious_max:
-                rpn_loc_loss += (rpn_loc_loss_compute(rpn_locs[n, n_i, :],
+                rpn_loc_loss += (1-rpn_loc_loss_compute(rpn_locs[n, n_i, :],
                                                       anchors[n_i, :], bboxes[n, j, 1:]))**2
+                # iou 损失无法描述偏离远处的候选框
 
         gt_fg_scores = gt_fg_scores_generator(anchors, gt_index_max128_ious)        # 生成 [9*H*W, 1] 所有anchor的标签
         rpn_cls_loss += (rpn_cls_loss_compute(gt_fg_scores, rpn_fg_scores[n, ...]))**2  # cls_loss
