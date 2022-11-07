@@ -21,20 +21,20 @@ def MTHead_Loss_Compute(bboxes, roi, cls_pred, loc_pred, iou_threshold, loss_fn 
     cls_loss, loc_loss = torch.tensor(0.), torch.tensor(0.)
 
     xa, ya, wa, ha = roi[1], roi[0], roi[3] - roi[1], roi[2] - roi[0]
-    tx, ty, tw, th = loc_pred[0,0], loc_pred[0,1], loc_pred[0,2], loc_pred[0,3]
+    tx, ty, tw, th = loc_pred[0, 0], loc_pred[0, 1], loc_pred[0, 2], loc_pred[0, 3]
     x_t, y_t, w_t, h_t = xa + wa * tx, ya + ha * ty, wa * torch.exp(tw), ha * torch.exp(th)
 
     roi_pred = (y_t, x_t, y_t + h_t, x_t + w_t)
 
     ious_m = []
     for i in range(m):
-        ious_m.append(iou_compute(roi_pred, bboxes[i, 1:]))
+        ious_m.append(iou_compute(roi, bboxes[i, 1:]))
     index_max_iou = ious_m.index(max(ious_m))
     if  ious_m[index_max_iou] > iou_threshold:
         roi_label[0, int(bboxes[index_max_iou, 0])] = 1
-        loc_loss += (1 - ious_m[index_max_iou])
+        loc_loss = (1 - ious_m[index_max_iou])**2
 
-    cls_loss += loss_fn(roi_label, cls_pred)
+    cls_loss = loss_fn(roi_label, cls_pred)
 
     return cls_loss, loc_loss
 
@@ -86,9 +86,9 @@ for e in range(10):
                         cls_pred, loc_pred = MTHead_net(roi_sr_patch)
 
                         # 损失计算
-                        cls_loss, loc_loss = MTHead_Loss_Compute(bboxes[n, ...], roi, cls_pred, loc_pred, 0.2)
-                        cls_n_loss += cls_loss
-                        loc_n_loss += loc_loss
+                        cls_loss, loc_loss = MTHead_Loss_Compute(bboxes[n, ...], roi, cls_pred, loc_pred, 0.5)
+                        cls_n_loss += (cls_loss) ** 2
+                        loc_n_loss += (loc_loss) ** 2
 
                 print(f"cls_n_loss: {cls_n_loss}, loc_n_loss: {loc_n_loss}")
 
