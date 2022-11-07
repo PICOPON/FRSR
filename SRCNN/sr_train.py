@@ -11,7 +11,7 @@ print(f'device: {device}')
 # 超参数
 batch_size = 16
 lr = 0.01
-epochs = 1
+epochs = 200
 # 数据
 train = SRData(fpath='train.h5')
 test = SRData(fpath='test.h5')
@@ -27,9 +27,9 @@ net = SRCNN(num_channel=3).cuda()
 # 损失优化函数
 loss_fn = torch.nn.MSELoss()
 optim = optim.SGD([
-    {'params': net.CONV1.parameters(), 'lr': 0.002},
-    {'params': net.CONV2.parameters(), 'lr': 0.003},
-    {'params': net.CONV3.parameters(), 'lr': 0.005},
+    {'params': net.CONV1.parameters(), 'lr': 0.01},
+    {'params': net.CONV2.parameters(), 'lr': 0.01},
+    {'params': net.CONV3.parameters(), 'lr': 0.01},
 ], lr=0.01, weight_decay=0.001)
 
 # 训练
@@ -43,7 +43,7 @@ for e in range(epochs):
         loss = loss_fn(pred, y)
         loss.backward()
         optim.step()
-        if batch % 20 == 0:
+        if batch % 10 == 0:
             print(f'epoch: {e}  train loss: {loss}')
     net.eval()
     with torch.no_grad():

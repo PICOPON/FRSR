@@ -78,8 +78,8 @@ if __name__ == '__main__':
     from datasets import BBoxData
     from torch.utils.data import DataLoader
 
-    rpn_dataset = BBoxData(img_path="E:\\CVATData\\DJI_0030\\images",
-                           label_path="E:\\CVATData\\DJI_0030\\labels")
+    rpn_dataset = BBoxData(img_path="E:\\dataset\\DJI_0030\\DJI_0030\\images",
+                           label_path="E:\\dataset\\DJI_0030\\DJI_0030\\labels")
 
     rpn_dataset_loader = DataLoader(rpn_dataset, 1)
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     net.train()
 
-    for e in range(3):
+    for e in range(100):
         for img, bboxes in rpn_dataset_loader:
             if bboxes.shape[1]:
                 net.zero_grad()
@@ -105,7 +105,7 @@ if __name__ == '__main__':
                 # 损失计算
                 rpn_cls_loss, rpn_loc_loss = loss_compute(rpn_fg_scores, rpn_locs, torch.tensor(anchors), bboxes)
                 #
-                rpn_loss = rpn_cls_loss + rpn_loc_loss
+                rpn_loss = rpn_cls_loss**2 + (rpn_loc_loss/10)**2
 
                 rpn_loss.backward()
                 optim.step()
@@ -123,7 +123,6 @@ if __name__ == '__main__':
                                                       roi[2] - roi[0], fill=False,
                                                       edgecolor='r', linewidth=3))
                 plt.show()
-            break
-        break
+
 
     torch.save(net.state_dict(), 'rpn_saved.pth')
