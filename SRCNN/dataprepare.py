@@ -2,8 +2,8 @@ import glob
 import h5py
 import cv2
 
-img_path = r'D:\LenovoSoftstore\Install\Pycharm\PyCharm 2021.3.2\projects\Network\data/Set14'
-f = h5py.File('train.h5', mode='w')
+img_path = r'D:\LenovoSoftstore\Install\Pycharm\PyCharm 2021.3.2\projects\Network\data/Set5'
+f = h5py.File('test.h5', mode='w')
 scale = 2
 
 lr_patches = []

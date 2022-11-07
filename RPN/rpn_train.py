@@ -123,5 +123,7 @@ if __name__ == '__main__':
                                                       roi[2] - roi[0], fill=False,
                                                       edgecolor='r', linewidth=3))
                 plt.show()
+            break
+        break
 
     torch.save(net.state_dict(), 'rpn_saved.pth')

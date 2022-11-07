@@ -31,12 +31,13 @@ def MTHead_Loss_Compute(bboxes, roi, cls_pred, loc_pred, iou_threshold, loss_fn 
         ious_m.append(iou_compute(roi_pred, bboxes[i, 1:]))
     index_max_iou = ious_m.index(max(ious_m))
     if  ious_m[index_max_iou] > iou_threshold:
-        roi_label[0, bboxes[index_max_iou, 0]] = 1
+        roi_label[0, int(bboxes[index_max_iou, 0])] = 1
         loc_loss += (1 - ious_m[index_max_iou])
 
     cls_loss += loss_fn(roi_label, cls_pred)
 
     return cls_loss, loc_loss
+
 
 # 数据定义加载
 BboxData_dataset = BBoxData('E:\\CVATData\\DJI_0030\\images',
@@ -66,7 +67,8 @@ for e in range(10):
             MTHead_net.zero_grad()
             _, _, _, rois = frpn_net(img)
             obj_rois = []
-            for n in range(len(rois)):   # 第n批次rois
+            for n in range(len(rois)):   # 第n张图的rois
+                cls_n_loss, loc_n_loss = 0, 0
                 for roi in rois[n]:
                     roi_x0, roi_y0, roi_x1, roi_y1 = round(roi[1]), round(roi[0]), round(roi[3]), round(roi[2])
                     roi_patch = img[n, :, roi_x0:roi_x1, roi_y0:roi_y1]
@@ -85,14 +87,20 @@ for e in range(10):
 
                         # 损失计算
                         cls_loss, loc_loss = MTHead_Loss_Compute(bboxes[n, ...], roi, cls_pred, loc_pred, 0.2)
+                        cls_n_loss += cls_loss
+                        loc_n_loss += loc_loss
 
-                        print(f"cls_loss: {cls_loss}, loc_loss: {loc_loss}")
-                        loss = cls_loss**2 + loc_loss**2
-
-                        loss.backward()
-                        optim.step()
+                print(f"cls_n_loss: {cls_n_loss}, loc_n_loss: {loc_n_loss}")
 
 
+
+                loss = cls_n_loss**2 + loc_n_loss**2
+
+                loss.backward()
+                optim.step()
+
+        torch.save(MTHead_net.state_dict(), 'head_saved.pth')
+        break
 
 
 
