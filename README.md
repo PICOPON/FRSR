@@ -6,7 +6,7 @@ FRSR is mainly used for small target detection enhancement, which mainly consist
 
 ![FRSR](https://user-images.githubusercontent.com/49949166/197488938-8cc3d17c-5ad1-4917-81ad-811b40d80e62.jpg)
 
-# Sequence of training steps
+# Training Steps
 1.Fix the weights of the other model parts and train the RPN network parts
 2.SRCNN training
 3. Fix the weights of the other model parts and train the MTHead network parts
