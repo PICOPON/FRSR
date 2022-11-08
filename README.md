@@ -4,7 +4,8 @@ An improved network based on small target detection network [SOD-MTGAN:Small Obj
 
 FRSR is mainly used for small target detection enhancement, which mainly consists of three main components as shown in the figure below, RPN network for proposal box generation, hyper-segmentation network for small target ROI region feature enhancement, and Resnet network for classification and location regression.
 
-![FRSR](https://user-images.githubusercontent.com/49949166/197488938-8cc3d17c-5ad1-4917-81ad-811b40d80e62.jpg)
+![frsr](https://user-images.githubusercontent.com/49949166/200490555-7a8e0819-0205-4903-84cf-b15a99fc2afd.png)
+
 
 # Training Steps
 1.Fix the weights of the other model parts and train the RPN network parts
