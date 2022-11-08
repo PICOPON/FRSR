@@ -5,12 +5,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from head import MTHead
-
 from SRCNN.srcnn import SRCNN
 from datasets import BBoxData
 
 from RPN.rpn_train import iou_compute
 from RPN.rpn import FRPN
+import matplotlib.pyplot as plt
 
 
 # MTHead网络 loss 计算
@@ -40,8 +40,8 @@ def MTHead_Loss_Compute(bboxes, roi, cls_pred, loc_pred, iou_threshold, loss_fn 
 
 
 # 数据定义加载
-BboxData_dataset = BBoxData('E:\\CVATData\\DJI_0030\\images',
-                            'E:\\CVATData\\DJI_0030\\labels')
+BboxData_dataset = BBoxData('E:\\dataset\\DJI_0030\\DJI_0030\\images',
+                            'E:\\dataset\\DJI_0030\\DJI_0030\\labels')
 
 BboxData_loader = DataLoader(BboxData_dataset, 1)
 
@@ -67,14 +67,17 @@ for e in range(10):
             MTHead_net.zero_grad()
             _, _, _, rois = frpn_net(img)
             obj_rois = []
-            for n in range(len(rois)):   # 第n张图的rois
+            for n in range(len(rois)):
                 cls_n_loss, loc_n_loss = 0, 0
+                plt.imshow(img[n, ...].permute(1, 2, 0))  # 绘制第n张图
+                obj_rois = []   # x, y, w, h
+                # 第n张图的rois
                 for roi in rois[n]:
                     roi_x0, roi_y0, roi_x1, roi_y1 = round(roi[1]), round(roi[0]), round(roi[3]), round(roi[2])
                     roi_patch = img[n, :, roi_x0:roi_x1, roi_y0:roi_y1]
-                    roi_patch = roi_patch.reshape(1, roi_patch.shape[0], roi_patch.shape[1], roi_patch.shape[2])
+                    roi_patch = roi_patch.reshape(1, *roi_patch.size())
 
-                    if  roi_patch.shape[1] and roi_patch.shape[2]:
+                    if roi_patch.shape[1] and roi_patch.shape[2]:
                         # roi区域全部resize到固定大小
                         roi_patch = F.interpolate(roi_patch, size=(64, 64), mode='bicubic', align_corners=False)
                         # [1, 3, 64, 64]
@@ -85,20 +88,39 @@ for e in range(10):
                         # roi 区域特征分类
                         cls_pred, loc_pred = MTHead_net(roi_sr_patch)
 
+                        if any(cls_pred[0, ...]):
+                            loc_pred = loc_pred.detach()
+                            xa, ya, wa, ha = roi[1], roi[0], roi[3] - roi[1], roi[2] - roi[0]
+                            tx, ty, tw, th = loc_pred[0, 0], loc_pred[0, 1], loc_pred[0, 2], loc_pred[0, 3]
+                            x_t, y_t, w_t, h_t = xa + wa * tx, ya + ha * ty, wa * torch.exp(tw), ha * torch.exp(th)
+                            obj_rois.append((cls_pred[0, ...].detach(), x_t, y_t, w_t, h_t))
+
                         # 损失计算
                         cls_loss, loc_loss = MTHead_Loss_Compute(bboxes[n, ...], roi, cls_pred, loc_pred, 0.5)
-                        cls_n_loss += (cls_loss) ** 2
-                        loc_n_loss += (loc_loss) ** 2
+                        cls_n_loss += cls_loss ** 2
+                        loc_n_loss += loc_loss ** 2
+                # 类别阈值处理
+                dnst_cls_1_obj_rois = sorted(obj_rois, key=lambda x: x[0][0], reverse=True)
+                dnst_cls_2_obj_rois = sorted(obj_rois, key=lambda x: x[0][1], reverse=True)
+                # 对 obj_rois 进行 nms 处理 筛选iou较大的重复框
+                # obj_rois = nms(obj_rois)
+                # 展示最终目标
+                out_obj_box = dnst_cls_1_obj_rois[0]
+                plt.gca().add_patch(plt.Rectangle(xy=(out_obj_box[1], out_obj_box[2]), width=out_obj_box[3],
+                                                  height=out_obj_box[4],
+                                                  edgecolor='r',
+                                                  fill=False, linewidth=2
+                                                  ))
+                plt.show()
 
                 print(f"cls_n_loss: {cls_n_loss}, loc_n_loss: {loc_n_loss}")
-
                 loss = cls_n_loss**2 + loc_n_loss**2
 
                 loss.backward()
                 optim.step()
 
         torch.save(MTHead_net.state_dict(), 'head_saved.pth')
-        break
+    break
 
 
 

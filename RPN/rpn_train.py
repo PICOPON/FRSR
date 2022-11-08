@@ -20,7 +20,7 @@ def loss_compute(rpn_fg_scores, rpn_locs, anchors, bboxes):
             ious = dict()
             for i in range(len(anchors)):
                 ious[i] = iou_compute(anchors[i, ...], bboxes[n, j, 1:])    # 求出每个bbox和所有anchors的iou (9*H*W, 1)
-            n_ious = sorted(ious.items(), key=lambda x: x[1], reverse=True)
+            n_ious = sorted(ious.items(), key=lambda x: x[1], reverse=True) # 按从大到小排序iou
             n_ious_max = [key for key, value in n_ious][:128]               # 取前128个iou对应的anchor序号
             gt_index_max128_ious.append(n_ious_max)
 
@@ -101,7 +101,6 @@ if __name__ == '__main__':
                 net.zero_grad()
                 # 损失计算
                 rpn_fg_scores, rpn_locs, anchors, rois = net(img)
-
                 print(f'roi_nums: {len(rois[0])}')
                 # 损失计算
                 rpn_cls_loss, rpn_loc_loss = loss_compute(rpn_fg_scores, rpn_locs, torch.tensor(anchors), bboxes)
@@ -124,6 +123,6 @@ if __name__ == '__main__':
                                                       roi[2] - roi[0], fill=False,
                                                       edgecolor='r', linewidth=3))
                 plt.show()
-
+        break
 
     torch.save(net.state_dict(), 'rpn_saved.pth')
