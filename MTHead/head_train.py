@@ -10,8 +10,10 @@ from datasets import BBoxData
 
 from RPN.rpn_train import iou_compute
 from RPN.rpn import FRPN
-import matplotlib.pyplot as plt
 
+# 计算硬件
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(f'device: {device}')
 
 # MTHead网络 loss 计算
 def MTHead_Loss_Compute(bboxes, roi, cls_pred, loc_pred, iou_threshold, loss_fn = torch.nn.MSELoss()):
@@ -46,31 +48,29 @@ BboxData_dataset = BBoxData('E:\\dataset\\DJI_0030\\DJI_0030\\images',
 BboxData_loader = DataLoader(BboxData_dataset, 1)
 
 # 已训练模型
-frpn_net = FRPN()
+frpn_net = FRPN().cuda(device=device)
 frpn_net.load_state_dict(torch.load("../RPN/rpn_saved.pth"))
 
-srcnn_net = SRCNN(num_channel=3)
+srcnn_net = SRCNN(num_channel=3).cuda(device=device)
 srcnn_net.load_state_dict(torch.load('../SRCNN/srcnn_saved.pth'))
 
 # 待训练
-MTHead_net = MTHead()
+MTHead_net = MTHead().cuda(device=device)
 
 # 误差梯度反向传播
 optim = optim.SGD(MTHead_net.parameters(), lr=0.001, momentum=0.9)
 
-cls_threshold = 0.2
+cls_iou_threshold = 0.2
 
 MTHead_net.train()
 for e in range(10):
-    for img, bboxes in BboxData_loader:
+    for b_i, (img, bboxes) in enumerate(BboxData_loader):
+        img, bboxes = img.to(device, dtype=torch.float32), bboxes.to(device, dtype=torch.float32)
         if bboxes.shape[1]:     # 如果有目标
             MTHead_net.zero_grad()
             _, _, _, rois = frpn_net(img)
-            obj_rois = []
+            cls_n_loss, loc_n_loss = torch.tensor(0.).cuda(device=device), torch.tensor(0.).cuda(device=device)
             for n in range(len(rois)):
-                cls_n_loss, loc_n_loss = 0, 0
-                plt.imshow(img[n, ...].permute(1, 2, 0))  # 绘制第n张图
-                obj_rois = []   # x, y, w, h
                 # 第n张图的rois
                 for roi in rois[n]:
                     roi_x0, roi_y0, roi_x1, roi_y1 = round(roi[1]), round(roi[0]), round(roi[3]), round(roi[2])
@@ -88,39 +88,22 @@ for e in range(10):
                         # roi 区域特征分类
                         cls_pred, loc_pred = MTHead_net(roi_sr_patch)
 
-                        if any(cls_pred[0, ...]):
-                            loc_pred = loc_pred.detach()
-                            xa, ya, wa, ha = roi[1], roi[0], roi[3] - roi[1], roi[2] - roi[0]
-                            tx, ty, tw, th = loc_pred[0, 0], loc_pred[0, 1], loc_pred[0, 2], loc_pred[0, 3]
-                            x_t, y_t, w_t, h_t = xa + wa * tx, ya + ha * ty, wa * torch.exp(tw), ha * torch.exp(th)
-                            obj_rois.append((cls_pred[0, ...].detach(), x_t, y_t, w_t, h_t))
-
                         # 损失计算
-                        cls_loss, loc_loss = MTHead_Loss_Compute(bboxes[n, ...], roi, cls_pred, loc_pred, 0.5)
+                        cls_loss, loc_loss = MTHead_Loss_Compute(bboxes[n, ...], roi, cls_pred, loc_pred,
+                                                                 cls_iou_threshold)
                         cls_n_loss += cls_loss ** 2
                         loc_n_loss += loc_loss ** 2
-                # 类别阈值处理
-                dnst_cls_1_obj_rois = sorted(obj_rois, key=lambda x: x[0][0], reverse=True)
-                dnst_cls_2_obj_rois = sorted(obj_rois, key=lambda x: x[0][1], reverse=True)
-                # 对 obj_rois 进行 nms 处理 筛选iou较大的重复框
-                # obj_rois = nms(obj_rois)
-                # 展示最终目标
-                out_obj_box = dnst_cls_1_obj_rois[0]
-                plt.gca().add_patch(plt.Rectangle(xy=(out_obj_box[1], out_obj_box[2]), width=out_obj_box[3],
-                                                  height=out_obj_box[4],
-                                                  edgecolor='r',
-                                                  fill=False, linewidth=2
-                                                  ))
-                plt.show()
 
-                print(f"cls_n_loss: {cls_n_loss}, loc_n_loss: {loc_n_loss}")
-                loss = cls_n_loss**2 + loc_n_loss**2
+            print(f"batch index: {b_i} cls_n_loss: {cls_n_loss}, loc_n_loss: {loc_n_loss}")
+            loss = cls_n_loss**2 + loc_n_loss**2
 
-                loss.backward()
-                optim.step()
+            loss.backward()
+            optim.step()
 
-        torch.save(MTHead_net.state_dict(), 'head_saved.pth')
-    break
+        if b_i % 20 == 0:
+            print("model saved")
+            torch.save(MTHead_net.state_dict(), 'head_saved.pth')
+
 
 
 
