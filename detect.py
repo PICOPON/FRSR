@@ -73,8 +73,8 @@ if __name__ == '__main__':
 
                     # 对 obj_rois 进行 nms 处理 筛选iou较大的重复框
                     # obj_rois = nms(obj_rois)
-                    # 展示最终目标
-                    # 置信度阈值0.5
+
+                    # 置信度阈值0.5 显示最终检测目标
                     out_obj_box = dnst_cls_1_obj_rois[0]
                     if out_obj_box[0][0] > 0.5:
                         plt.gca().add_patch(
